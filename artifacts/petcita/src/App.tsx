@@ -29,6 +29,16 @@ import {
 } from 'lucide-react';
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
+  ClerkProvider,
+  SignIn,
+  SignUp,
+  useClerk,
+  useAuth,
+  useUser,
+} from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { shadcn } from '@clerk/themes';
+import {
   getGetDashboardSummaryQueryKey,
   getListAppointmentsQueryKey,
   getListPetsQueryKey,
@@ -42,7 +52,7 @@ import {
   useSendWhatsappMessage,
   useUpdateAppointment,
 } from '@workspace/api-client-react';
-import { Link, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -50,9 +60,15 @@ import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
 const today = new Date().toISOString().slice(0, 10);
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 const navItems = [
-  { href: '/', label: 'Resumen', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard },
   { href: '/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/pacientes', label: 'Pacientes', icon: PawPrint },
   { href: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
@@ -105,7 +121,11 @@ function EmptyState({ icon: Icon, title, description, action }: { icon: typeof P
 function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const activeLabel = navItems.find((item) => item.href === location)?.label ?? 'Configuración';
+  const displayName = user?.fullName || user?.firstName || 'Administradora';
+  const displayInitials = initials(displayName);
   return <div className="app-shell">
     <aside className={cn('sidebar', mobileOpen && 'sidebar-open')}>
       <div className="brand-lockup">
@@ -133,7 +153,11 @@ function Shell({ children }: { children: ReactNode }) {
       </nav>
       <div className="sidebar-bottom">
         <div className="connection-card"><span className="live-dot" /><div><strong>WhatsApp conectado</strong><small>Listo para recibir reservas</small></div></div>
-        <div className="profile-row"><div className="avatar avatar-coral">LM</div><div><strong>Laura Méndez</strong><small>Administradora</small></div><MoreHorizontal size={17} /></div>
+        <button className="profile-row profile-logout" type="button" data-testid="button-logout" onClick={() => signOut({ redirectUrl: basePath || "/" })}>
+          <div className="avatar avatar-coral">{displayInitials}</div>
+          <div><strong>{displayName}</strong><small>{user?.primaryEmailAddress?.emailAddress || 'Equipo de atención'}</small></div>
+          <span className="logout-label">Salir</span>
+        </button>
       </div>
     </aside>
     {mobileOpen && <button className="mobile-scrim" data-testid="button-close-menu" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú" />}
@@ -278,13 +302,151 @@ function SettingsPage() {
   return <Shell><PageHeading eyebrow="Administración" title="Configuración" description="Ajusta la identidad de la clínica y revisa tus canales de atención." /><div className="settings-layout"><form className="panel settings-panel" onSubmit={save}><div className="panel-heading"><div><p className="eyebrow">Perfil de clínica</p><h2>Cómo te ve tu equipo</h2></div><FileText size={18} className="heading-icon" /></div><label className="form-field"><span>Nombre de la clínica</span><input data-testid="input-settings-clinic-name" value={clinicName} onChange={(event) => setClinicName(event.target.value)} /></label><label className="form-field"><span>Teléfono principal</span><input data-testid="input-settings-phone" value={phone} onChange={(event) => setPhone(event.target.value)} /></label><label className="form-field"><span>Zona horaria</span><select data-testid="select-settings-timezone" defaultValue="madrid"><option value="madrid">Madrid · CET (UTC+1)</option><option value="canarias">Canarias · WET (UTC+0)</option></select></label><div className="settings-actions"><button className="button button-primary" data-testid="button-save-settings" type="submit">{saved ? <><Check size={16} />Guardado</> : 'Guardar cambios'}</button></div></form><div className="settings-right"><section className="panel readiness-panel"><div className="panel-heading"><div><p className="eyebrow">Canal conectado</p><h2>WhatsApp Business</h2></div><span className="ready-pill"><CheckCircle2 size={14} />Listo</span></div><div className="connection-detail"><div className="whatsapp-symbol"><MessageCircle size={22} /></div><div><strong>+34 912 48 16 20</strong><span>{channelTested ? 'Prueba enviada · canal operativo' : 'Clínica Vecina · conectado hoy'}</span></div><button className="button button-quiet" data-testid="button-test-whatsapp" onClick={() => setChannelTested(true)} type="button">{channelTested ? 'Canal verificado' : 'Probar canal'}</button></div><div className="readiness-list"><div><CheckCircle2 size={16} /><span>Recepción de mensajes activa</span><b>Activo</b></div><div><CheckCircle2 size={16} /><span>Asistente de reserva preparado</span><b>Activo</b></div><div><CheckCircle2 size={16} /><span>Recordatorios de cita</span><b>Activo</b></div></div></section><section className="panel tip-panel"><div className="tip-icon"><Stethoscope size={19} /></div><div><p className="eyebrow">Una nota para el equipo</p><h3>La claridad también cuida</h3><p>Cuando el día se llena, una respuesta corta y a tiempo es parte de la atención.</p></div></section></div></div></Shell>;
 }
 
+function Landing() {
+  return <main className="auth-landing">
+    <div className="landing-mark"><PawPrint size={28} /></div>
+    <p className="eyebrow">PetCita · Clínica veterinaria</p>
+    <h1>La agenda de tu clínica, <span>sin perder el hilo.</span></h1>
+    <p className="landing-copy">Gestiona citas, pacientes y reservas de WhatsApp desde un solo lugar. Inicia sesión para entrar al panel de tu clínica.</p>
+    <Link href="/sign-in" className="button button-primary landing-cta" data-testid="link-login">Iniciar sesión con Google <ArrowRight size={17} /></Link>
+    <div className="landing-points"><span><CheckCircle2 size={16} />Agenda sincronizada</span><span><CheckCircle2 size={16} />Reservas por WhatsApp</span><span><CheckCircle2 size={16} />Datos protegidos</span></div>
+  </main>;
+}
+
+const clerkAppearance = {
+  theme: shadcn,
+  cssLayerName: 'clerk',
+  options: {
+    logoPlacement: 'inside' as const,
+    logoLinkUrl: basePath || '/',
+    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+  },
+  variables: {
+    colorPrimary: '#2D8974',
+    colorForeground: '#173E43',
+    colorMutedForeground: '#6B7D7B',
+    colorDanger: '#C85C5C',
+    colorBackground: '#FBF8F1',
+    colorInput: '#FFFFFF',
+    colorInputForeground: '#173E43',
+    colorNeutral: '#D7DFD9',
+    fontFamily: 'DM Sans, sans-serif',
+    borderRadius: '0.9rem',
+  },
+  elements: {
+    rootBox: 'w-full flex justify-center',
+    cardBox: 'bg-[#FBF8F1] rounded-2xl w-[440px] max-w-full overflow-hidden',
+    card: '!shadow-none !border-0 !bg-transparent !rounded-none',
+    footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
+    headerTitle: 'text-[#173E43]',
+    headerSubtitle: 'text-[#6B7D7B]',
+    socialButtonsBlockButtonText: 'text-[#173E43]',
+    formFieldLabel: 'text-[#173E43]',
+    footerActionLink: 'text-[#2D8974]',
+    footerActionText: 'text-[#6B7D7B]',
+    dividerText: 'text-[#6B7D7B]',
+    identityPreviewEditButton: 'text-[#2D8974]',
+    formFieldSuccessText: 'text-[#2D8974]',
+    alertText: 'text-[#C85C5C]',
+    logoBox: 'mb-3',
+    logoImage: 'rounded-xl',
+    socialButtonsBlockButton: 'border-[#D7DFD9] bg-white hover:bg-[#F0F8F4]',
+    formButtonPrimary: 'bg-[#2D8974] hover:bg-[#226D5C]',
+    formFieldInput: 'border-[#D7DFD9] bg-white text-[#173E43]',
+    footerAction: 'border-[#D7DFD9]',
+    dividerLine: 'bg-[#D7DFD9]',
+    alert: 'border-[#F0D4D4] bg-[#FFF6F6]',
+    otpCodeFieldInput: 'border-[#D7DFD9] bg-white',
+    formFieldRow: 'text-[#173E43]',
+    main: 'text-[#173E43]',
+  },
+};
+
+function SignInPage() {
+  return <div className="auth-page"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div>;
+}
+
+function SignUpPage() {
+  return <div className="auth-page"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div>;
+}
+
+function AuthLoading() {
+  return <main className="auth-loading"><div className="landing-mark"><PawPrint size={24} /></div><p>Preparando PetCita…</p></main>;
+}
+
+function HomeRedirect() {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <AuthLoading />;
+  if (isSignedIn) return <Redirect to="/dashboard" />;
+  return <Landing />;
+}
+
+function ProtectedPage({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <AuthLoading />;
+  if (!isSignedIn) return <Redirect to="/" />;
+  return <>{children}</>;
+}
+
+function ProtectedDashboard() {
+  return <ProtectedPage><Dashboard /></ProtectedPage>;
+}
+
+function ProtectedAgenda() {
+  return <ProtectedPage><Agenda /></ProtectedPage>;
+}
+
+function ProtectedPatients() {
+  return <ProtectedPage><Patients /></ProtectedPage>;
+}
+
+function ProtectedWhatsapp() {
+  return <ProtectedPage><Whatsapp /></ProtectedPage>;
+}
+
+function ProtectedSettings() {
+  return <ProtectedPage><SettingsPage /></ProtectedPage>;
+}
+
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Dashboard} /><Route path="/agenda" component={Agenda} /><Route path="/pacientes" component={Patients} /><Route path="/whatsapp" component={Whatsapp} /><Route path="/configuracion" component={SettingsPage} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch>
+    <Route path="/" component={HomeRedirect} />
+    <Route path="/sign-in/*?" component={SignInPage} />
+    <Route path="/sign-up/*?" component={SignUpPage} />
+    <Route path="/dashboard" component={ProtectedDashboard} />
+    <Route path="/agenda" component={ProtectedAgenda} />
+    <Route path="/pacientes" component={ProtectedPatients} />
+    <Route path="/whatsapp" component={ProtectedWhatsapp} />
+    <Route path="/configuracion" component={ProtectedSettings} />
+    <Route component={NotFound} />
+  </Switch></ErrorBoundary>;
+}
+
+function ClerkApp() {
+  const [, setLocation] = useLocation();
+  return <ClerkProvider
+    publishableKey={clerkPubKey}
+    proxyUrl={clerkProxyUrl}
+    appearance={clerkAppearance}
+    signInUrl={`${basePath}/sign-in`}
+    signUpUrl={`${basePath}/sign-up`}
+    localization={{
+      signIn: { start: { title: 'Inicia sesión en PetCita', subtitle: 'Accede al panel de tu clínica' } },
+      signUp: { start: { title: 'Crea tu cuenta de PetCita', subtitle: 'Empieza a organizar tu clínica' } },
+    }}
+    routerPush={(to) => setLocation(to.startsWith(basePath) ? to.slice(basePath.length) || '/' : to)}
+    routerReplace={(to) => setLocation(to.startsWith(basePath) ? to.slice(basePath.length) || '/' : to, { replace: true })}
+  >
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider><Router /><Toaster /></TooltipProvider>
+    </QueryClientProvider>
+  </ClerkProvider>;
 }
 
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><Router /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  if (!clerkPubKey) throw new Error('Falta configurar la clave pública de Clerk.');
+  return <WouterRouter base={basePath}><ClerkApp /></WouterRouter>;
 }
 
 export default App;
