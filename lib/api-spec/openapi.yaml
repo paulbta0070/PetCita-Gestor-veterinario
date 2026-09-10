@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: PetCita veterinary appointment management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Clinic dashboard summaries
+  - name: appointments
+    description: Veterinary appointment management
+  - name: pets
+    description: Patient and owner management
+  - name: whatsapp
+    description: WhatsApp booking simulation and inbox
 paths:
   /healthz:
     get:
@@ -24,7 +32,171 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get clinic dashboard summary
+      responses:
+        "200":
+          description: Summary for the clinic home page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments
+      parameters:
+        - $ref: "#/components/parameters/DateQuery"
+        - $ref: "#/components/parameters/AppointmentStatusQuery"
+        - $ref: "#/components/parameters/SearchQuery"
+      responses:
+        "200":
+          description: Appointment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Create an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Created appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+  /appointments/{id}:
+    patch:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update appointment details
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentUpdate"
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "404":
+          description: Appointment not found
+  /pets:
+    get:
+      operationId: listPets
+      tags: [pets]
+      summary: List pets and their owners
+      parameters:
+        - $ref: "#/components/parameters/SearchQuery"
+      responses:
+        "200":
+          description: Patient list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+    post:
+      operationId: createPet
+      tags: [pets]
+      summary: Register a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetInput"
+      responses:
+        "201":
+          description: Created patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+  /whatsapp/conversations:
+    get:
+      operationId: listWhatsappConversations
+      tags: [whatsapp]
+      summary: List WhatsApp conversations
+      responses:
+        "200":
+          description: WhatsApp inbox conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WhatsappConversation"
+  /whatsapp/conversations/{id}/messages:
+    post:
+      operationId: sendWhatsappMessage
+      tags: [whatsapp]
+      summary: Send a simulated WhatsApp message and get the bot reply
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsappMessageInput"
+      responses:
+        "200":
+          description: Updated conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappConversation"
 components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    DateQuery:
+      name: date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+    AppointmentStatusQuery:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [scheduled, confirmed, completed, cancelled]
+    SearchQuery:
+      name: search
+      in: query
+      required: false
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +205,215 @@ components:
           type: string
       required:
         - status
+    DashboardSummary:
+      type: object
+      properties:
+        todayAppointments:
+          type: integer
+        pendingConfirmation:
+          type: integer
+        activePatients:
+          type: integer
+        whatsappBookings:
+          type: integer
+        completionRate:
+          type: integer
+        nextAppointment:
+          anyOf:
+            - $ref: "#/components/schemas/Appointment"
+            - type: "null"
+        weeklyAppointments:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayCount"
+      required:
+        - todayAppointments
+        - pendingConfirmation
+        - activePatients
+        - whatsappBookings
+        - completionRate
+        - nextAppointment
+        - weeklyAppointments
+    DayCount:
+      type: object
+      properties:
+        day:
+          type: string
+        count:
+          type: integer
+      required: [day, count]
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        petId:
+          type: integer
+        petName:
+          type: string
+        species:
+          type: string
+        ownerName:
+          type: string
+        ownerPhone:
+          type: string
+        veterinarian:
+          type: string
+        service:
+          type: string
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, confirmed, completed, cancelled]
+        source:
+          type: string
+          enum: [panel, whatsapp]
+        notes:
+          type: ["string", "null"]
+      required:
+        - id
+        - petId
+        - petName
+        - species
+        - ownerName
+        - ownerPhone
+        - veterinarian
+        - service
+        - appointmentDate
+        - appointmentTime
+        - status
+        - source
+        - notes
+    AppointmentInput:
+      type: object
+      properties:
+        petId:
+          type: integer
+          minimum: 1
+        veterinarian:
+          type: string
+          minLength: 1
+        service:
+          type: string
+          minLength: 1
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        notes:
+          type: ["string", "null"]
+        source:
+          type: string
+          enum: [panel, whatsapp]
+      required: [petId, veterinarian, service, appointmentDate, appointmentTime, source]
+    AppointmentUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [scheduled, confirmed, completed, cancelled]
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        veterinarian:
+          type: string
+        notes:
+          type: ["string", "null"]
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        species:
+          type: string
+        breed:
+          type: string
+        age:
+          type: integer
+        ownerName:
+          type: string
+        ownerPhone:
+          type: string
+        lastVisit:
+          type: ["string", "null"]
+        nextAppointment:
+          type: ["string", "null"]
+        avatarColor:
+          type: string
+      required: [id, name, species, breed, age, ownerName, ownerPhone, lastVisit, nextAppointment, avatarColor]
+    PetInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        species:
+          type: string
+          minLength: 1
+        breed:
+          type: string
+        age:
+          type: integer
+          minimum: 0
+        ownerName:
+          type: string
+          minLength: 1
+        ownerPhone:
+          type: string
+          minLength: 1
+      required: [name, species, breed, age, ownerName, ownerPhone]
+    WhatsappMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender:
+          type: string
+          enum: [client, bot, clinic]
+        text:
+          type: string
+        time:
+          type: string
+      required: [id, sender, text, time]
+    WhatsappConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientName:
+          type: string
+        phone:
+          type: string
+        petName:
+          type: string
+        petSpecies:
+          type: string
+        status:
+          type: string
+          enum: [active, booked, waiting]
+        lastMessage:
+          type: string
+        lastMessageTime:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsappMessage"
+      required: [id, clientName, phone, petName, petSpecies, status, lastMessage, lastMessageTime, messages]
+    WhatsappMessageInput:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+      required: [text]
 

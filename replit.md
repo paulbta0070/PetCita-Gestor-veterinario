@@ -1,6 +1,6 @@
-# [Project name]
+# PetCita
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Gestor veterinario en español que sincroniza la agenda de la clínica con un flujo de agendamiento conversacional por WhatsApp.
 
 ## Run & Operate
 
@@ -22,15 +22,26 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/petcita` — aplicación web React/Vite para dashboard, agenda, pacientes y WhatsApp.
+- `artifacts/api-server` — API Express y seed de datos de demostración.
+- `lib/api-spec/openapi.yaml` — contrato fuente de la API.
+- `lib/db/src/schema` — tablas y esquemas de PostgreSQL.
+- `docs/INFORME-PRACTICAS.md` — base técnica y académica para el documento de prácticas.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Se eligió TypeScript en frontend y backend para compartir contratos y detectar errores durante el desarrollo.
+- PostgreSQL almacena la información relacional de propietarios, mascotas, citas y conversaciones.
+- OpenAPI es la fuente única para generar hooks del cliente y validaciones del servidor.
+- El flujo WhatsApp inicia como simulación persistente para demostrar el diferencial sin depender de credenciales externas.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Dashboard de operación diaria.
+- Agenda con búsqueda, creación y actualización de estado.
+- Registro de pacientes y propietarios.
+- Bandeja de conversaciones con respuestas automáticas simuladas.
+- Métricas de citas y reservas provenientes de WhatsApp.
 
 ## User preferences
 

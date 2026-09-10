@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "PetCita"
+description = "Gestor veterinario en español que permite a los clientes agendar citas en dos clics desde WhatsApp y ayuda a la clínica a administrar su agenda, pacientes y atención diaria."
+version = "1.0.0"
+id = "artifacts/petcita"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21875
+
+[services.development]
+run = "pnpm --filter @workspace/petcita run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/petcita", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/petcita/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21875"
+BASE_PATH = "/"
