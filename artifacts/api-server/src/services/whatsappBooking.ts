@@ -21,22 +21,8 @@ const tomorrow = () => {
 };
 
 function firstName(name: string) {
-  return name.trim().split(/\s+/)[0] || "allí";
-}
-
-function hasConfirmation(text: string) {
-  return /\b(si|sí|confirmo|confirmar|listo|dale|ok)\b/i.test(text);
-}
-
-function requestedTime(text: string) {
-  const match = text.match(/\b([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b/i);
-  if (!match) return null;
-  let hour = Number(match[1]);
-  const minutes = match[2] ?? "00";
-  const meridiem = match[3]?.replace(/\s/g, "").toLowerCase();
-  if (meridiem?.startsWith("p") && hour < 12) hour += 12;
-  if (meridiem?.startsWith("a") && hour === 12) hour = 0;
-  return `${String(hour).padStart(2, "0")}:${minutes}`;
+  if (!name || name === "Cliente") return "allí";
+  return name.trim().split(/\s+/)[0];
 }
 
 async function findOrCreateClient(phone: string) {
@@ -59,18 +45,20 @@ async function findOrCreateClient(phone: string) {
 
   const owner = existingOwner
     ?? (await db.insert(petOwnersTable).values({
-      name: "Cliente de WhatsApp",
+      name: "Cliente",
       phone: normalizedPhone,
     }).returning())[0];
+
   const pet = (await db.insert(petsTable).values({
     ownerId: owner.id,
-    name: "Mascota de WhatsApp",
+    name: "tu mascota",
     species: "Perro",
     breed: "Por confirmar",
     age: 0,
     lastVisit: null,
     avatarColor: "#D9F4EC",
   }).returning())[0];
+
   return { owner, pet };
 }
 
@@ -85,6 +73,7 @@ async function getOrCreateConversation(phone: string) {
       eq(whatsappConversationsTable.petId, client.pet.id),
     ))
     .limit(1);
+
   if (conversation) return { conversation, ...client };
 
   const created = (await db.insert(whatsappConversationsTable).values({
@@ -92,16 +81,26 @@ async function getOrCreateConversation(phone: string) {
     petId: client.pet.id,
     status: "active",
   }).returning())[0];
+
   return { conversation: created, ...client };
 }
 
 async function bookAppointment(
   ownerId: number,
   petId: number,
-  text: string,
+  slotOption: string
 ) {
-  const appointmentTime = requestedTime(text) ?? "15:30";
-  const appointmentDate = /ma[ñn]ana/i.test(text) ? tomorrow() : today();
+  let appointmentDate = today();
+  let appointmentTime = "15:30";
+
+  if (slotOption === "2") {
+    appointmentDate = tomorrow();
+    appointmentTime = "08:30";
+  } else if (slotOption === "3") {
+    appointmentDate = tomorrow();
+    appointmentTime = "11:00";
+  }
+
   const existing = await db
     .select()
     .from(appointmentsTable)
@@ -111,6 +110,7 @@ async function bookAppointment(
       eq(appointmentsTable.appointmentTime, appointmentTime),
     ))
     .limit(1);
+
   if (existing[0]) return existing[0];
 
   return (await db.insert(appointmentsTable).values({
@@ -121,13 +121,15 @@ async function bookAppointment(
     appointmentTime,
     status: "confirmed",
     source: "whatsapp",
-    notes: `Reserva recibida por WhatsApp para ${ownerId}.`,
+    notes: `Reserva recibida por menú de WhatsApp (Opción ${slotOption}).`,
   }).returning())[0];
 }
 
 export async function processIncomingWhatsapp({ phone, text }: IncomingWhatsapp) {
   const { conversation, owner, pet } = await getOrCreateConversation(phone);
   const cleanedText = text.trim() || "Mensaje sin texto";
+
+  // Registrar mensaje del usuario
   await db.insert(whatsappMessagesTable).values({
     conversationId: conversation.id,
     sender: "client",
@@ -139,32 +141,66 @@ export async function processIncomingWhatsapp({ phone, text }: IncomingWhatsapp)
     || lower.includes("agendar")
     || lower.includes("reservar")
     || lower.includes("consulta");
-  const shouldBook = hasConfirmation(cleanedText)
-    || Boolean(requestedTime(cleanedText) && conversation.status === "waiting");
 
   let reply: string;
-  let status = conversation.status;
-  if (shouldBook) {
-    const appointment = await bookAppointment(owner.id, pet.id, cleanedText);
-    reply = `Listo, ${firstName(owner.name)}. La cita de ${pet.name} quedó confirmada para el ${appointment.appointmentDate} a las ${appointment.appointmentTime}. Te esperamos en Clínica Vecina.`;
-    status = "booked";
-  } else if (wantsBooking) {
-    reply = `Claro, ${firstName(owner.name)}. Para ${pet.name} tengo hoy a las 15:30 o mañana a las 08:30. Responde con “sí” y el horario que prefieras.`;
-    status = "waiting";
-  } else {
-    reply = `Hola, ${firstName(owner.name)}. Soy el asistente de Clínica Vecina. Puedo ayudarte a agendar una cita para ${pet.name}.`;
-    status = "active";
+  let nextStatus = conversation.status;
+
+  switch (conversation.status) {
+    case "waiting":
+      // Validar si el cliente seleccionó una opción válida del menú (1, 2 o 3)
+      if (["1", "2", "3"].includes(cleanedText)) {
+        const appointment = await bookAppointment(owner.id, pet.id, cleanedText);
+        const ownerDisplayName = firstName(owner.name);
+        const petDisplayName = pet.name === "tu mascota" ? "tu mascota" : pet.name;
+
+        reply = `¡Excelente, ${ownerDisplayName}! La cita para ${petDisplayName} ha sido agendada con éxito para el día ${appointment.appointmentDate} a las ${appointment.appointmentTime}. Te esperamos en Clínica Vecina 🐾.`;
+        nextStatus = "booked";
+      } else {
+        reply = `Por favor responde únicamente con el número de la opción que prefieras:\n\n1️⃣ Hoy - 15:30\n2️⃣ Mañana - 08:30\n3️⃣ Mañana - 11:00`;
+      }
+      break;
+
+    case "booked":
+      if (/\b(gracias|grax|ok|vale|listo|perfecto|chao|adios)\b/i.test(lower)) {
+        reply = `¡Con mucho gusto! Estamos para servirte. Nos vemos pronto en Clínica Vecina 🐾.`;
+        nextStatus = "booked";
+      } else if (wantsBooking) {
+        reply = `Ya tienes una cita confirmada. Para agendar una cita adicional, selecciona una opción respondiendo con el número:\n\n1️⃣ Hoy - 15:30\n2️⃣ Mañana - 08:30\n3️⃣ Mañana - 11:00`;
+        nextStatus = "waiting";
+      } else {
+        reply = `Tu cita ya se encuentra registrada. Si necesitas consultar otro servicio o cambiarla, escribe la palabra "Cita".`;
+      }
+      break;
+
+    case "active":
+    default:
+      if (wantsBooking) {
+        const ownerDisplayName = firstName(owner.name);
+        const petDisplayName = pet.name === "tu mascota" ? "tu mascota" : pet.name;
+
+        reply = `¡Hola, ${ownerDisplayName}! Con gusto te ayudo a agendar la consulta de ${petDisplayName} 🐾.\n\nPor favor responde con el NÚMERO del horario que prefieras:\n\n1️⃣ Hoy - 15:30\n2️⃣ Mañana - 08:30\n3️⃣ Mañana - 11:00`;
+        nextStatus = "waiting";
+      } else {
+        reply = `Hola. Soy el asistente de Clínica Vecina 🐾. Escribe la palabra "Cita" o "Agendar" para mostrarte los horarios disponibles.`;
+        nextStatus = "active";
+      }
+      break;
   }
 
+  // Registrar mensaje del bot
   await db.insert(whatsappMessagesTable).values({
     conversationId: conversation.id,
     sender: "bot",
     text: reply,
   });
-  await db.update(whatsappConversationsTable).set({
-    status,
-    updatedAt: new Date(),
-  }).where(eq(whatsappConversationsTable.id, conversation.id));
 
-  return { reply, conversationId: conversation.id, status };
+  // Actualizar estado en PostgreSQL
+  await db.update(whatsappConversationsTable)
+    .set({
+      status: nextStatus,
+      updatedAt: new Date(),
+    })
+    .where(eq(whatsappConversationsTable.id, conversation.id));
+
+  return { reply, conversationId: conversation.id, status: nextStatus };
 }
