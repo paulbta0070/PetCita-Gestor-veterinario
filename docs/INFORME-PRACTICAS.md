@@ -12,7 +12,7 @@ Muchas personas abandonan el proceso de reserva porque deben descargar una aplic
 
 PetCita permite agendar una cita veterinaria en una conversación de WhatsApp de aproximadamente dos pasos, sin obligar al cliente a crear una cuenta. La solicitud queda sincronizada con el panel de la clínica, donde el personal puede revisar el origen de la reserva, confirmar el horario y administrar la atención.
 
-El MVP incluye una bandeja de conversaciones de WhatsApp simulada. Esta decisión permite demostrar el flujo completo durante la práctica sin depender de credenciales de un número comercial. La integración real se puede conectar posteriormente mediante un proveedor compatible con WhatsApp Business, como Twilio.
+El MVP incluye tres conversaciones iniciales para demostrar el flujo en la bandeja sin depender de un número comercial. Además, el backend ya incorpora el webhook de Twilio y conserva la simulación como datos de demostración. Cuando se configura un remitente de WhatsApp Business, el mismo flujo puede recibir mensajes reales y crear citas.
 
 ## 4. Objetivo general
 
@@ -24,7 +24,7 @@ Desarrollar un sistema web para administrar citas, pacientes y conversaciones de
 2. Registrar y consultar mascotas y sus propietarios.
 3. Crear, filtrar y actualizar el estado de las citas.
 4. Registrar el origen de cada cita: panel interno o WhatsApp.
-5. Simular una conversación automatizada para demostrar la reserva sin cuenta.
+5. Simular y preparar una conversación automatizada para demostrar la reserva sin cuenta.
 6. Persistir la información en una base de datos relacional.
 7. Medir indicadores de uso y eficiencia del proceso de agendamiento.
 
@@ -34,11 +34,12 @@ Desarrollar un sistema web para administrar citas, pacientes y conversaciones de
 - Agenda de citas con búsqueda y estados.
 - Registro de pacientes y propietarios.
 - Bandeja de conversaciones de WhatsApp.
-- Respuestas automáticas simuladas en español.
+- Respuestas automáticas en español, con tres conversaciones iniciales de demostración.
 - Persistencia en PostgreSQL.
 - API REST con contratos OpenAPI.
 - Datos iniciales para demostración académica.
-- Preparación para reemplazar la simulación por un webhook de WhatsApp Business.
+- Webhook de entrada para Twilio en `/api/webhooks/twilio/whatsapp`.
+- Creación automática de la cita cuando el cliente confirma el horario.
 
 ### Fuera del alcance inicial
 
@@ -46,7 +47,7 @@ Desarrollar un sistema web para administrar citas, pacientes y conversaciones de
 - Historias clínicas completas.
 - Inventario de medicamentos.
 - Aplicación móvil nativa.
-- Envío real de mensajes hasta conectar y autorizar un proveedor de WhatsApp.
+- Configuración del número comercial, remitente y URL pública dentro de Twilio.
 
 ## 7. Lenguajes y tecnologías
 
@@ -60,7 +61,7 @@ Desarrollar un sistema web para administrar citas, pacientes y conversaciones de
 | ORM | Drizzle ORM | Consultas y definición del esquema |
 | Validación | Zod | Validación de entradas y respuestas |
 | Contrato | OpenAPI 3.1 | Definición única de la API y generación de tipos |
-| Comunicación futura | WhatsApp Business mediante proveedor compatible | Automatización real de mensajes |
+| Comunicación | Twilio mediante Replit Connectors | Recepción y envío de mensajes de WhatsApp |
 
 ### ¿En qué lenguaje está construido?
 
@@ -151,11 +152,11 @@ Permite buscar mascotas, consultar sus datos y registrar un nuevo paciente junto
 
 ### WhatsApp
 
-Muestra conversaciones, mensajes enviados por el cliente, respuestas del bot y mensajes de la clínica. El flujo demuestra el agendamiento conversacional y deja marcada la cita como proveniente de WhatsApp.
+Muestra las tres conversaciones iniciales, mensajes enviados por el cliente, respuestas del bot y mensajes de la clínica. El flujo también acepta mensajes del webhook de Twilio y deja marcada la cita como proveniente de WhatsApp.
 
 ### Configuración
 
-Se reserva para los datos de la clínica y la conexión futura con WhatsApp Business.
+Muestra el estado del conector Twilio y si el envío desde la bandeja está configurado. La conexión requiere un `TWILIO_ACCOUNT_SID`, un `TWILIO_WHATSAPP_FROM` y un remitente de WhatsApp Business activo en Twilio. Estos valores se deben configurar como variables del entorno, nunca dentro del código.
 
 ## 11. Flujo principal del diferencial
 
@@ -208,10 +209,10 @@ La hipótesis es que el grupo de WhatsApp tendrá menor tiempo promedio, menos a
 
 ## 14. Trabajo futuro
 
-1. Conectar un número de WhatsApp Business mediante Twilio u otro proveedor.
-2. Recibir mensajes mediante un webhook firmado.
-3. Consultar disponibilidad real por veterinario y servicio.
-4. Crear automáticamente la cita después de la confirmación del cliente.
+1. Configurar y verificar el remitente de WhatsApp Business en Twilio.
+2. Publicar PetCita y registrar su URL HTTPS como webhook de mensajes entrantes.
+3. Completar la validación de firma de Twilio en el webhook.
+4. Consultar disponibilidad real por veterinario y servicio.
 5. Enviar recordatorios y mensajes de reprogramación.
 6. Agregar autenticación y roles para administrador, veterinario y recepción.
 7. Añadir historia clínica, vacunas y archivos del paciente.

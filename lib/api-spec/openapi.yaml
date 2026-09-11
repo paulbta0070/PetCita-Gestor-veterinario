@@ -17,7 +17,7 @@ tags:
   - name: pets
     description: Patient and owner management
   - name: whatsapp
-    description: WhatsApp booking simulation and inbox
+    description: WhatsApp booking, inbox and Twilio webhook
 paths:
   /healthz:
     get:
@@ -168,6 +168,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WhatsappConversation"
+  /whatsapp/status:
+    get:
+      operationId: getWhatsappStatus
+      tags: [whatsapp]
+      summary: Get WhatsApp provider configuration status
+      responses:
+        "200":
+          description: Twilio connection and sender configuration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappStatus"
 components:
   parameters:
     IdPath:
@@ -416,4 +428,25 @@ components:
           type: string
           minLength: 1
       required: [text]
+    WhatsappStatus:
+      type: object
+      required: [provider, connected, configuredForSending, webhookPath, missingConfiguration]
+      properties:
+        provider:
+          type: string
+          example: Twilio
+        connected:
+          type: boolean
+        configuredForSending:
+          type: boolean
+        whatsappFrom:
+          type: string
+          nullable: true
+          example: configured
+        webhookPath:
+          type: string
+        missingConfiguration:
+          type: array
+          items:
+            type: string
 

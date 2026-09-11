@@ -536,6 +536,27 @@
   cursor: pointer;
 }
 
+.ready-pill-pending {
+  color: #97743b !important;
+  background: #fff4d8 !important;
+}
+
+.readiness-pending,
+.readiness-pending svg {
+  color: #97743b !important;
+}
+
+.channel-note {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  color: #8a795f;
+  background: #fff8e8;
+  border: 1px solid #f0dfb5;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .logout-label {
   margin-left: auto;
   color: rgba(226, 246, 236, 0.7);

@@ -19,6 +19,7 @@ import {
 } from "@workspace/db";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { getTwilioStatus, sendWhatsappMessage } from "../services/twilio";
 
 const router: IRouter = Router();
 
@@ -275,6 +276,10 @@ router.get("/whatsapp/conversations", async (_req, res) => {
   res.json(result.filter(Boolean));
 });
 
+router.get("/whatsapp/status", (_req, res) => {
+  res.json(getTwilioStatus());
+});
+
 router.post("/whatsapp/conversations/:id/messages", async (req, res) => {
   const params = SendWhatsappMessageParams.parse(req.params);
   const body = SendWhatsappMessageBody.parse(req.body);
@@ -301,11 +306,22 @@ router.post("/whatsapp/conversations/:id/messages", async (req, res) => {
     sender: "bot",
     text: reply,
   });
+  let delivery:
+    | Awaited<ReturnType<typeof sendWhatsappMessage>>
+    | { delivered: false; reason: "panel_simulation" } = {
+    delivered: false,
+    reason: "panel_simulation",
+  };
+  try {
+    delivery = await sendWhatsappMessage(conversation.phone, reply);
+  } catch (error) {
+    logger.warn({ error, conversationId: params.id }, "Twilio delivery failed; keeping message in inbox");
+  }
   await db.update(whatsappConversationsTable).set({
     status: lower.includes("confirm") ? "booked" : "active",
     updatedAt: new Date(),
   }).where(eq(whatsappConversationsTable.id, params.id));
-  res.json(await getConversation(params.id));
+  res.json({ ...(await getConversation(params.id)), delivery });
 });
 
 router.use((error: unknown, _req: unknown, res: { status: (code: number) => typeof res; json: (value: unknown) => void }, _next: unknown) => {

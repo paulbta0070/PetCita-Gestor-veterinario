@@ -171,6 +171,15 @@ export interface WhatsappMessageInput {
   text: string;
 }
 
+export interface WhatsappStatus {
+  provider: string;
+  connected: boolean;
+  configuredForSending: boolean;
+  whatsappFrom?: string | null;
+  webhookPath: string;
+  missingConfiguration: string[];
+}
+
 export type DateQueryParameter = string;
 
 export type AppointmentStatusQueryParameter = typeof AppointmentStatusQueryParameter[keyof typeof AppointmentStatusQueryParameter];

@@ -28,3 +28,4 @@ export * from './whatsappConversationStatus';
 export * from './whatsappMessage';
 export * from './whatsappMessageInput';
 export * from './whatsappMessageSender';
+export * from './whatsappStatus';

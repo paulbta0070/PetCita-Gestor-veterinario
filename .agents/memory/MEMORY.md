@@ -1,0 +1,1 @@
+- [Twilio connector setup](twilio-connector.md) — connector authorization alone does not configure a WhatsApp sender or public webhook.

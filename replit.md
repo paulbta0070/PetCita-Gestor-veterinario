@@ -33,14 +33,14 @@ Gestor veterinario en español que sincroniza la agenda de la clínica con un fl
 - Se eligió TypeScript en frontend y backend para compartir contratos y detectar errores durante el desarrollo.
 - PostgreSQL almacena la información relacional de propietarios, mascotas, citas y conversaciones.
 - OpenAPI es la fuente única para generar hooks del cliente y validaciones del servidor.
-- El flujo WhatsApp inicia como simulación persistente para demostrar el diferencial sin depender de credenciales externas.
+- El proyecto conserva tres conversaciones iniciales de demostración y ya tiene el webhook de Twilio preparado para recibir mensajes reales.
 
 ## Product
 
 - Dashboard de operación diaria.
 - Agenda con búsqueda, creación y actualización de estado.
 - Registro de pacientes y propietarios.
-- Bandeja de conversaciones con respuestas automáticas simuladas.
+- Bandeja de conversaciones con respuestas automáticas y creación de citas desde el webhook de Twilio.
 - Métricas de citas y reservas provenientes de WhatsApp.
 
 ## User preferences
@@ -49,7 +49,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- La ruta `/api/webhooks/twilio/whatsapp` es pública porque Twilio debe poder invocarla.
+- El envío desde la bandeja requiere `TWILIO_ACCOUNT_SID` y `TWILIO_WHATSAPP_FROM`; no deben guardarse en el código.
 
 ## Pointers
 

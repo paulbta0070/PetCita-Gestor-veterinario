@@ -258,3 +258,16 @@ export const SendWhatsappMessageResponse = zod.object({
 })
 
 
+/**
+ * @summary Get WhatsApp provider configuration status
+ */
+export const GetWhatsappStatusResponse = zod.object({
+  "provider": zod.string(),
+  "connected": zod.boolean(),
+  "configuredForSending": zod.boolean(),
+  "whatsappFrom": zod.string().nullish(),
+  "webhookPath": zod.string(),
+  "missingConfiguration": zod.array(zod.string())
+})
+
+

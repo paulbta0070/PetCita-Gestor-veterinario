@@ -30,7 +30,8 @@ import type {
   Pet,
   PetInput,
   WhatsappConversation,
-  WhatsappMessageInput
+  WhatsappMessageInput,
+  WhatsappStatus
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -745,4 +746,81 @@ export const useSendWhatsappMessage = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSendWhatsappMessageMutationOptions(options));
     }
+
+export const getGetWhatsappStatusUrl = () => {
+
+
+
+
+  return `/api/whatsapp/status`
+}
+
+/**
+ * @summary Get WhatsApp provider configuration status
+ */
+export const getWhatsappStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<WhatsappStatus> => {
+
+  return customFetch<WhatsappStatus>(getGetWhatsappStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWhatsappStatusQueryKey = () => {
+    return [
+    `/api/whatsapp/status`
+    ] as const;
+    }
+
+
+export const getGetWhatsappStatusQueryOptions = <TData = Awaited<ReturnType<typeof getWhatsappStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWhatsappStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWhatsappStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWhatsappStatus>>> = ({ signal }) => getWhatsappStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWhatsappStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWhatsappStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getWhatsappStatus>>>
+export type GetWhatsappStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get WhatsApp provider configuration status
+ */
+
+export function useGetWhatsappStatus<TData = Awaited<ReturnType<typeof getWhatsappStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWhatsappStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWhatsappStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
