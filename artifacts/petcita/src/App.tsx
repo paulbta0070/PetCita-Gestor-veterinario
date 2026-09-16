@@ -86,15 +86,7 @@ const queryClient = new QueryClient({
   },
 });
 
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        return response.json();
-      },
-    },
-  },
-});
+       
 const today = new Date().toISOString().slice(0, 10);
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const clerkPubKey = publishableKeyFromHost(
