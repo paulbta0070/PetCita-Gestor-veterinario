@@ -1,0 +1,55 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          cd artifacts/petcita
+          npm install
+
+      - name: Build project
+        env:
+          VITE_API_URL: "https://pet-cita-gestor-veterinario--javiermontoyaen.replit.app"
+          VITE_CLERK_PUBLISHABLE_KEY: "pk_test_Z3VpZGluZy1zYWlsZmlzaC0zNDc1LmNsZXJrLmFjY291bnRzLmRldiQ"
+        run: |
+          cd artifacts/petcita
+          npm run build
+
+      - name: Copy index.html to 404.html (Fix React Router)
+        run: |
+          cp artifacts/petcita/dist/index.html artifacts/petcita/dist/404.html
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'artifacts/petcita/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
