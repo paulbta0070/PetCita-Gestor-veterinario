@@ -66,12 +66,26 @@ const queryClient = new QueryClient({
         const endpoint = Array.isArray(queryKey) ? queryKey.join('/') : queryKey;
         const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
         
+        // Obtiene el token activo de Clerk para autenticar la petición cross-origin
+        const token = await (window as any).Clerk?.session?.getToken();
+
         const response = await fetch(url, {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
         });
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        return response.json();
+      },
+    },
+  },
+});
 
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
