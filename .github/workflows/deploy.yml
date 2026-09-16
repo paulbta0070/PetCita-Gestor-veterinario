@@ -28,10 +28,16 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
+
       - name: Install dependencies
         run: |
           cd artifacts/petcita
-          npm install
+          pnpm install
 
       - name: Build project
         env:
@@ -39,7 +45,7 @@ jobs:
           VITE_CLERK_PUBLISHABLE_KEY: "pk_test_Z3VpZGluZy1zYWlsZmlzaC0zNDc1LmNsZXJrLmFjY291bnRzLmRldiQ"
         run: |
           cd artifacts/petcita
-          npm run build
+          pnpm run build -- --base=/PetCita-Gestor-veterinario/
 
       - name: Copy index.html to 404.html (Fix React Router)
         run: |
