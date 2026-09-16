@@ -48,12 +48,12 @@ jobs:
         run: |
           cd artifacts/petcita
           pnpm run build
-          cp dist/index.html dist/404.html
+          cp dist/public/index.html dist/public/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'artifacts/petcita/dist'
+          path: 'artifacts/petcita/dist/public'
 
       - name: Deploy to GitHub Pages
         id: deployment
