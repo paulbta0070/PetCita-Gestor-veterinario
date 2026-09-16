@@ -66,7 +66,6 @@ const queryClient = new QueryClient({
         const endpoint = Array.isArray(queryKey) ? queryKey.join('/') : queryKey;
         const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
         
-        // Obtiene el token activo de Clerk para autenticar la petición cross-origin
         const token = await (window as any).Clerk?.session?.getToken();
 
         const response = await fetch(url, {
