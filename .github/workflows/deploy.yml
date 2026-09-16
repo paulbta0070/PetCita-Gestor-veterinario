@@ -51,8 +51,7 @@ jobs:
 
       - name: Copy index.html to 404.html (Fix React Router)
         run: |
-          cd artifacts/petcita/dist
-          cp index.html 404.html
+          cp artifacts/petcita/dist/index.html artifacts/petcita/dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
