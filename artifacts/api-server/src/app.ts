@@ -32,8 +32,16 @@ app.use(
     },
   }),
 );
+
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-app.use(cors({ credentials: true, origin: true }));
+
+app.use(
+  cors({
+    origin: ["https://petcita.netlify.app", "http://localhost:5173"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
