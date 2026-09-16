@@ -42,11 +42,12 @@ jobs:
       - name: Build project
         env:
           PORT: "3000"
+          BASE_PATH: "/PetCita-Gestor-veterinario/"
           VITE_API_URL: "https://pet-cita-gestor-veterinario--javiermontoyaen.replit.app"
           VITE_CLERK_PUBLISHABLE_KEY: "pk_test_Z3VpZGluZy1zYWlsZmlzaC0zNDc1LmNsZXJrLmFjY291bnRzLmRldiQ"
         run: |
           cd artifacts/petcita
-          pnpm run build -- --base=/PetCita-Gestor-veterinario/
+          pnpm run build
 
       - name: Copy index.html to 404.html (Fix React Router)
         run: |
