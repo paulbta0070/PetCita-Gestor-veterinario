@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd artifacts/petcita
-          pnpm install
+          pnpm install --no-frozen-lockfile
 
       - name: Build project
         env:
