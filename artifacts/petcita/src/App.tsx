@@ -62,7 +62,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: async ({ queryKey }) => {
-        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://pet-cita-gestor-veterinario--javiermontoyaen.replit.app';
         const endpoint = Array.isArray(queryKey) ? queryKey.join('/') : queryKey;
         const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
         
