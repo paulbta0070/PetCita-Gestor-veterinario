@@ -39,7 +39,7 @@ jobs:
           cd artifacts/petcita
           pnpm install --no-frozen-lockfile
 
-      - name: Build project
+      - name: Build project and configure SPA fallback
         env:
           PORT: "3000"
           BASE_PATH: "/PetCita-Gestor-veterinario/"
@@ -48,10 +48,7 @@ jobs:
         run: |
           cd artifacts/petcita
           pnpm run build
-
-      - name: Copy index.html to 404.html (Fix React Router)
-        run: |
-          cp artifacts/petcita/dist/index.html artifacts/petcita/dist/404.html
+          cp dist/index.html dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
