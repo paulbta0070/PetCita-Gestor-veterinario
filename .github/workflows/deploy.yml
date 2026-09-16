@@ -41,6 +41,7 @@ jobs:
 
       - name: Build project
         env:
+          PORT: "3000"
           VITE_API_URL: "https://pet-cita-gestor-veterinario--javiermontoyaen.replit.app"
           VITE_CLERK_PUBLISHABLE_KEY: "pk_test_Z3VpZGluZy1zYWlsZmlzaC0zNDc1LmNsZXJrLmFjY291bnRzLmRldiQ"
         run: |
