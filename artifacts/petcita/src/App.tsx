@@ -64,16 +64,31 @@ const queryClient = new QueryClient({
       queryFn: async ({ queryKey }) => {
         const baseUrl = import.meta.env.VITE_API_URL || 'https://pet-cita-gestor-veterinario--javiermontoyaen.replit.app';
         const endpoint = Array.isArray(queryKey) ? queryKey.join('/') : queryKey;
-        const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-        
-        const token = await (window as any).Clerk?.session?.getToken();
+        const url = endpoint.startsWith('http') 
+          ? endpoint 
+          : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+
+        // Intentar obtener el token de Clerk con espera de sesión activa
+        let token = null;
+        try {
+          if ((window as any).Clerk?.session) {
+            token = await (window as any).Clerk.session.getToken();
+          }
+        } catch (e) {
+          console.warn("Clerk session token fetch fallback:", e);
+        }
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
 
         const response = await fetch(url, {
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
+          headers,
         });
 
         if (!response.ok) {
@@ -82,6 +97,7 @@ const queryClient = new QueryClient({
 
         return response.json();
       },
+      retry: 2, // Reintenta si la primera petición falló antes de que Clerk cargara
     },
   },
 });
